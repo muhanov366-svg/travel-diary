@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        img-src * data: blob: 'unsafe-inline' https: http:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        connect-src * https: http: ws: wss:;
+        font-src * data:;
+        media-src *;
+        frame-src *;
+    ">
+    <title>Дневник путешествий</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ШАПКА -->
+    <header>
+        <div class="container header-flex">
+            <h1>🌍 Дневник путешествий</h1>
+            <nav>
+                <a href="index.html" class="active">Главная</a>
+                <a href="pages/create.html">➕ Создать</a>
+                <a href="pages/profile.html">👤 Профиль</a>
+                <span id="userDisplay" class="user-name"></span>
+                <button id="logoutBtn" class="btn-logout">Выйти</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ОСНОВНОЙ КОНТЕНТ -->
+    <main>
+        <div class="container">
+            <h2>📸 Лента путешествий</h2>
+            <div id="travelFeed" class="travel-grid">
+                <p class="loading">⏳ Загрузка...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ПОДКЛЮЧАЕМ JAVASCRIPT -->
+    <script src="app.js"></script>
+    <script>
+        // Ждем загрузки DOM и проверяем, что все функции определены
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM загружен');
+            console.log('Тип loadTravelFeed:', typeof loadTravelFeed);
+            console.log('Тип updateUserInfo:', typeof updateUserInfo);
+            
+            if (typeof loadTravelFeed === 'function') {
+                loadTravelFeed();
+            } else {
+                console.error('Функция loadTravelFeed не найдена!');
+                document.getElementById('travelFeed').innerHTML = '<p class="loading">❌ Ошибка загрузки скрипта</p>';
+            }
+            
+            if (typeof updateUserInfo === 'function') {
+                updateUserInfo();
+            } else {
+                console.error('Функция updateUserInfo не найдена!');
+            }
+        });
+    </script>
+</body>
+</html>

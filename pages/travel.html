@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        img-src * data: blob: 'unsafe-inline' https: http:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        connect-src * https: http: ws: wss:;
+        font-src * data:;
+        media-src *;
+        frame-src *;
+    ">
+    <title>Путешествие — Дневник путешествий</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <header>
+        <div class="container header-flex">
+            <h1>🌍 Дневник путешествий</h1>
+            <nav>
+                <a href="../index.html">Главная</a>
+                <a href="create.html">➕ Создать</a>
+                <a href="profile.html">👤 Профиль</a>
+                <span id="userDisplay" class="user-name"></span>
+                <button id="logoutBtn" class="btn-logout">Выйти</button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <a href="../index.html" class="btn-back">← На главную</a>
+            <div id="travelDetails">
+                <p class="loading">⏳ Загрузка...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="../app.js"></script>
+    <script>
+        function getTravelIdFromUrl() {
+            var params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            var travelId = getTravelIdFromUrl();
+            
+            if (travelId && typeof loadTravelDetails === 'function') {
+                loadTravelDetails(travelId);
+            } else if (!travelId) {
+                document.getElementById('travelDetails').innerHTML = '<p class="loading">❌ ID путешествия не указан</p>';
+            } else {
+                document.getElementById('travelDetails').innerHTML = '<p class="loading">❌ Ошибка загрузки</p>';
+            }
+            
+            if (typeof updateUserInfo === 'function') {
+                updateUserInfo();
+            }
+        });
+    </script>
+</body>
+</html>

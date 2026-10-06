@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        img-src * data: blob: 'unsafe-inline' https: http:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        connect-src * https: http: ws: wss:;
+        font-src * data:;
+        media-src *;
+        frame-src *;
+    ">
+    <title>Вход / Регистрация — Дневник путешествий</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <header>
+        <div class="container header-flex">
+            <h1>🌍 Дневник путешествий</h1>
+            <nav>
+                <a href="../index.html">Главная</a>
+                <span id="userDisplay" class="user-name">🔒 Гость</span>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container">
+                <h2 id="formTitle">🔐 Вход</h2>
+                
+                <div id="alertMessage"></div>
+                
+                <form id="authForm">
+                    <div class="form-group" id="nameGroup" style="display:none;">
+                        <label for="name">Имя</label>
+                        <input type="text" id="name" placeholder="Введите ваше имя">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="example@mail.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Пароль</label>
+                        <input type="password" id="password" placeholder="Минимум 6 символов" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" id="submitBtn">Войти</button>
+                </form>
+                
+                <p style="text-align:center;margin-top:18px;color:#64748b;">
+                    <span id="toggleText">Нет аккаунта?</span>
+                    <a href="#" id="toggleLink" style="color:#1a2a6c;font-weight:600;text-decoration:none;">Зарегистрироваться</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script src="../app.js"></script>
+    <script>
+        var isLoginMode = true;
+        
+        var formTitle = document.getElementById('formTitle');
+        var submitBtn = document.getElementById('submitBtn');
+        var toggleLink = document.getElementById('toggleLink');
+        var toggleText = document.getElementById('toggleText');
+        var nameGroup = document.getElementById('nameGroup');
+        var alertMessage = document.getElementById('alertMessage');
+        
+        toggleLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            
+            if (isLoginMode) {
+                formTitle.textContent = '🔐 Вход';
+                submitBtn.textContent = 'Войти';
+                toggleText.textContent = 'Нет аккаунта?';
+                toggleLink.textContent = 'Зарегистрироваться';
+                nameGroup.style.display = 'none';
+            } else {
+                formTitle.textContent = '📝 Регистрация';
+                submitBtn.textContent = 'Зарегистрироваться';
+                toggleText.textContent = 'Уже есть аккаунт?';
+                toggleLink.textContent = 'Войти';
+                nameGroup.style.display = 'block';
+            }
+            
+            alertMessage.innerHTML = '';
+        });
+        
+        document.getElementById('authForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (typeof loginUser !== 'function' || typeof registerUser !== 'function') {
+                showAlert('Ошибка: функции не загружены', 'error');
+                return;
+            }
+            
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value.trim();
+            var name = document.getElementById('name').value.trim();
+            
+            alertMessage.innerHTML = '';
+            
+            if (!email || !password) {
+                showAlert('Пожалуйста, заполните все поля', 'error');
+                return;
+            }
+            
+            if (!isLoginMode && !name) {
+                showAlert('Пожалуйста, введите ваше имя', 'error');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Загрузка...';
+            
+            if (isLoginMode) {
+                loginUser(email, password)
+                    .then(function(response) {
+                        if (response.success) {
+                            localStorage.setItem('currentUser', JSON.stringify(response.user));
+                            showAlert('Вход выполнен! Перенаправление...', 'success');
+                            setTimeout(function() {
+                                window.location.href = '../index.html';
+                            }, 1000);
+                        } else {
+                            showAlert('Ошибка: ' + (response.message || 'Ошибка входа'), 'error');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Войти';
+                        }
+                    })
+                    .catch(function(error) {
+                        showAlert('Ошибка: ' + error, 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Войти';
+                    });
+            } else {
+                registerUser(name, email, password)
+                    .then(function(response) {
+                        if (response.success) {
+                            showAlert('Регистрация успешна! Теперь войдите.', 'success');
+                            // Переключаем на режим входа
+                            isLoginMode = true;
+                            formTitle.textContent = '🔐 Вход';
+                            submitBtn.textContent = 'Войти';
+                            toggleText.textContent = 'Нет аккаунта?';
+                            toggleLink.textContent = 'Зарегистрироваться';
+                            nameGroup.style.display = 'none';
+                            document.getElementById('name').value = '';
+                            document.getElementById('email').value = '';
+                            document.getElementById('password').value = '';
+                            submitBtn.disabled = false;
+                        } else {
+                            showAlert('Ошибка: ' + (response.message || 'Ошибка регистрации'), 'error');
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = 'Зарегистрироваться';
+                        }
+                    })
+                    .catch(function(error) {
+                        showAlert('Ошибка: ' + error, 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Зарегистрироваться';
+                    });
+            }
+        });
+        
+        function showAlert(message, type) {
+            alertMessage.innerHTML = '<div class="alert alert-' + type + '">' + message + '</div>';
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof updateUserInfo === 'function') {
+                updateUserInfo();
+            }
+        });
+    </script>
+</body>
+</html>

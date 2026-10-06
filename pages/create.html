@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        img-src * data: blob: 'unsafe-inline' https: http:;
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        connect-src * https: http: ws: wss:;
+        font-src * data:;
+        media-src *;
+        frame-src *;
+    ">
+    <title>Создать путешествие — Дневник путешествий</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <header>
+        <div class="container header-flex">
+            <h1>🌍 Дневник путешествий</h1>
+            <nav>
+                <a href="../index.html">Главная</a>
+                <a href="create.html" class="active">➕ Создать</a>
+                <a href="profile.html">👤 Профиль</a>
+                <span id="userDisplay" class="user-name"></span>
+                <button id="logoutBtn" class="btn-logout">Выйти</button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="form-container">
+                <h2>✈️ Создать новое путешествие</h2>
+                
+                <div id="alertMessage"></div>
+                
+                <form id="createForm">
+                    <div class="form-group">
+                        <label for="title">Название путешествия *</label>
+                        <input type="text" id="title" placeholder="Например: Поездка в Париж" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Описание</label>
+                        <textarea id="description" placeholder="Расскажите о вашем путешествии..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="startDate">Дата начала</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="endDate">Дата окончания</label>
+                        <input type="date" id="endDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cost">Стоимость (₽)</label>
+                        <input type="number" id="cost" placeholder="Например: 50000" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="location">📍 Местоположение</label>
+                        <input type="text" id="location" placeholder="Например: Париж, Франция">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="photoLinks">📸 Ссылки на фотографии</label>
+                        <input type="text" id="photoLinks" placeholder="https://cloud.mail.ru/public/XXXX/XXXXX">
+                        <p style="font-size:12px;color:#94a3b8;margin-top:6px;">Можно добавить несколько ссылок через запятую</p>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary" id="submitBtn">🚀 Сохранить путешествие</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../app.js"></script>
+    <script>
+        // Проверяем авторизацию с правильным путем
+        if (typeof isLoggedIn === 'function' && !isLoggedIn()) {
+            window.location.href = 'login.html';
+        }
+        
+        if (typeof updateUserInfo === 'function') {
+            updateUserInfo();
+        }
+        
+        document.getElementById('createForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (typeof getCurrentUser !== 'function') {
+                showAlert('Ошибка: функции не загружены', 'error');
+                return;
+            }
+            
+            var user = getCurrentUser();
+            if (!user) {
+                showAlert('Пожалуйста, войдите в систему', 'error');
+                return;
+            }
+            
+            var title = document.getElementById('title').value.trim();
+            var description = document.getElementById('description').value.trim();
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
+            var cost = document.getElementById('cost').value;
+            var location = document.getElementById('location').value.trim();
+            var photoLinks = document.getElementById('photoLinks').value.trim();
+            
+            if (!title) {
+                showAlert('Введите название путешествия', 'error');
+                return;
+            }
+            
+            var submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Сохранение...';
+            
+            if (typeof createTravel !== 'function') {
+                showAlert('Ошибка: функция createTravel не найдена', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 Сохранить путешествие';
+                return;
+            }
+            
+            createTravel(user.id, title, description, startDate, endDate, cost, location)
+                .then(function(response) {
+                    if (response.success) {
+                        var travelId = response.travelId;
+                        
+                        if (photoLinks && typeof addPhoto === 'function') {
+                            var urls = photoLinks.split(',').map(function(url) { 
+                                return url.trim(); 
+                            }).filter(function(url) { 
+                                return url; 
+                            });
+                            
+                            if (urls.length > 0) {
+                                var photoPromises = urls.map(function(url) {
+                                    return addPhoto(travelId, url);
+                                });
+                                return Promise.all(photoPromises).then(function() {
+                                    return response;
+                                });
+                            }
+                        }
+                        return response;
+                    } else {
+                        throw new Error(response.message || 'Ошибка создания');
+                    }
+                })
+                .then(function() {
+                    showAlert('Путешествие успешно создано!', 'success');
+                    setTimeout(function() {
+                        window.location.href = '../index.html';
+                    }, 1500);
+                })
+                .catch(function(error) {
+                    showAlert('Ошибка: ' + error, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '🚀 Сохранить путешествие';
+                });
+        });
+        
+        function showAlert(message, type) {
+            var container = document.getElementById('alertMessage');
+            container.innerHTML = '<div class="alert alert-' + type + '">' + message + '</div>';
+        }
+    </script>
+</body>
+</html>
